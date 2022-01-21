@@ -4,7 +4,6 @@ import andriell.dictionary.gui.MainFrame;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
