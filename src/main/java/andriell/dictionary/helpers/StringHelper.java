@@ -36,4 +36,10 @@ public class StringHelper {
         }
         return r;
     }
+
+    public static String sqlEscape(String str) {
+        if (str == null)
+            return "NULL";
+        return "'" + str.replace("'","''") + "'";
+    }
 }

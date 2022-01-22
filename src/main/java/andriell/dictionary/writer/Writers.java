@@ -1,8 +1,14 @@
 package andriell.dictionary.writer;
 
 public class Writers {
-    private static Writer[] writers = new Writer[] { new LnwnWriter(), new NlnwnWriter(),
-            new LtwnWriter(), };
+    private static Writer[] writers = new Writer[] {
+            new LnwnWriter(),
+            new NlnwnWriter(),
+            new LtwnWriter(),
+            new SqlOneTableWriter(),
+            new SqlTwoTableWriter(),
+            new SqlOneTableGroupWriter(),
+    };
 
     public static String[] getNames() {
         String[] r = new String[writers.length];

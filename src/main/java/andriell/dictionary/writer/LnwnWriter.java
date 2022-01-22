@@ -8,7 +8,7 @@ import java.io.FileWriter;
 import java.util.Set;
 
 public class LnwnWriter implements Writer {
-    private static BufferedWriter writer;
+    private BufferedWriter writer;
 
     @Override public String getName() {
         return "Lemma \\n word \\n .txt";

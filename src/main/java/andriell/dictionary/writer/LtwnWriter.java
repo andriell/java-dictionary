@@ -8,7 +8,7 @@ import java.io.FileWriter;
 import java.util.Set;
 
 public class LtwnWriter implements Writer {
-    private static BufferedWriter writer;
+    private BufferedWriter writer;
 
     @Override public String getName() {
         return "Lemma \\t word \\n .txt";
@@ -18,8 +18,11 @@ public class LtwnWriter implements Writer {
         try {
             if (lemma == null)
                 return;
+            writer.write(lemma);
+            writer.write("\t");
+            writer.write(lemma);
+            writer.write("\n");
             if (words == null) {
-                writer.write(lemma);
                 return;
             }
             for (String word : words) {
