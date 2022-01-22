@@ -25,4 +25,15 @@ public class StringHelper {
         }
         return r;
     }
+
+    public static String[] byChar(String str) {
+        if (str == null)
+            return null;
+
+        String[] r = new String[str.length()];
+        for (int i = 0; i < str.length(); i++) {
+            r[i] = Character.toString(str.charAt(i));
+        }
+        return r;
+    }
 }

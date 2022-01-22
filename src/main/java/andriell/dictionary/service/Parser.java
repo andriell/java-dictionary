@@ -1,19 +1,23 @@
 package andriell.dictionary.service;
 
+import andriell.dictionary.file.AffLinesPfx;
+import andriell.dictionary.file.AffLinesSfx;
 import andriell.dictionary.helpers.StringHelper;
 
 import java.io.*;
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class Parser {
     File fileDic;
     File fileAff;
     String charset = "KOI8-R";
+    boolean flagNum = false;
     int dicLine = 0;
     int dicTotal = 0;
 
-    HashMap<String, PfxSfx> pfxSfxMap = new HashMap<>();
+    AffLinesPfx pfx = new AffLinesPfx();
+    AffLinesSfx sfx = new AffLinesSfx();
 
     public File getFileDic() {
         return fileDic;
@@ -32,17 +36,17 @@ public class Parser {
         return fileAff;
     }
 
-    public void write(String lemma, List<String> words) {
+    public void write(String lemma, Set<String> words) {
         Log.println(lemma);
-        Log.println(words.toString());
+        if (words != null)
+            Log.println(words.toString());
     }
 
     public void parse() throws IOException {
         parseAff(0);
 
-        for (PfxSfx pfxSfx : pfxSfxMap.values()) {
-            Log.println(pfxSfx.toString());
-        }
+        Log.println(sfx.toString());
+        Log.println(pfx.toString());
 
         parseDic();
     }
@@ -74,47 +78,34 @@ public class Parser {
                     continue;
                 }
                 String lemma = line.substring(0, i);
-                String pfxSfxStr = line.substring(i + 1);
-                String[] pfxSfxNames = StringHelper.split(pfxSfxStr, ",");
-                ;
-                if (pfxSfxNames == null) {
-                    Log.println("Incorrect dic pfxSfxNames: '" + pfxSfxStr + "'");
+                String ruleName = line.substring(i + 1);
+                String[] ruleNames;
+                if (flagNum) {
+                    ruleNames = StringHelper.split(ruleName, ",");
+                } else {
+                    ruleNames = StringHelper.byChar(ruleName);
+                }
+
+                if (ruleNames == null) {
+                    Log.println("Incorrect dic rule names: '" + ruleName + "'");
                     continue;
                 }
-                List<String> words = new ArrayList<>();
-                for (String pfxSfxName : pfxSfxNames) {
-                    List<String> words1 = applyPfxSfx(lemma, pfxSfxName);
-                    if (words1 != null)
-                        words.addAll(words1);
+                Set<String> wordsSfx = new TreeSet<>();
+                for (String s : ruleNames) {
+                    sfx.apply(lemma, s, wordsSfx);
                 }
-                write(lemma, words);
+                Set<String> wordsPfx = new TreeSet<>();
+                for (String s : ruleNames) {
+                    pfx.apply(wordsSfx, s, wordsPfx);
+                }
+                wordsSfx.addAll(wordsPfx);
+                write(lemma, wordsSfx);
             } catch (Exception e) {
                 Log.error(e);
             }
         } reader.close();
         isr.close();
         fis.close();
-    }
-
-    private List<String> applyPfxSfx(String lemma, String pfxSfxName) {
-        PfxSfx pfxSfx = pfxSfxMap.get(pfxSfxName);
-        if (pfxSfx == null)
-            return null;
-
-        List<String> r = new ArrayList<>(pfxSfx.rules.size());
-        for (PfxSfx.Rule rule : pfxSfx.rules) {
-            if (!rule.matches(lemma)) {
-                continue;
-            }
-            if (pfxSfx.isSfx && lemma.endsWith(rule.f)) {
-                String word = lemma.substring(0, -1 * rule.f.length()) + rule.t;
-                r.add(word);
-            } else if (!pfxSfx.isSfx && lemma.startsWith(rule.f)) {
-                String word = rule.t + lemma.substring(rule.f.length());
-                r.add(word);
-            }
-        }
-        return r;
     }
 
     private void parseAff(int skip) throws IOException {
@@ -133,10 +124,16 @@ public class Parser {
                     Log.println("Set charset: '" + charset + "'");
                     parseAff(i);
                     break;
+                } else if (line.startsWith("FLAG ")) {
+                    String flag = line.substring(5);
+                    if (flag == null)
+                        continue;
+                    flag = flag.trim().toLowerCase();
+                    flagNum = "num".equals(flag);
                 } else if (line.startsWith("SFX ")) {
-                    addPfxSfx(line, true);
+                    sfx.addLine(line);
                 } else if (line.startsWith("PFX ")) {
-                    addPfxSfx(line, false);
+                    pfx.addLine(line);
                 } else if (!"".equals(line)) {
                     Log.println("Skip line: '" + line + "'");
                 }
@@ -148,79 +145,5 @@ public class Parser {
         reader.close();
         isr.close();
         fis.close();
-    }
-
-    private void addPfxSfx(String s, boolean isSfx) {
-        String[] strings = StringHelper.split(s, "\\s+");
-        String name = strings[1];
-        PfxSfx pfxSfx = pfxSfxMap.get(name);
-        if (pfxSfx == null) {
-            if (strings.length < 4) {
-                Log.println("Incorrect line: '" + s + "'");
-                return;
-            }
-            pfxSfx = new PfxSfx();
-            pfxSfx.isSfx = isSfx;
-            pfxSfx.name = name;
-            int i = Integer.parseInt(strings[3]);
-            pfxSfx.rules = new HashSet<>(i);
-            pfxSfxMap.put(name, pfxSfx);
-            return;
-        }
-        if (strings.length < 5) {
-            Log.println("Incorrect line: '" + s + "'");
-            return;
-        }
-        PfxSfx.Rule rule = new PfxSfx.Rule();
-        rule.f = "0".equals(strings[2]) ? "" : strings[2];
-        rule.t = "0".equals(strings[3]) ? "" : strings[3];
-        if (rule.f.equals(rule.t)) {
-            Log.println("Duplicate line: '" + s + "'");
-            return;
-        }
-        if (isSfx) {
-            rule.p = Pattern.compile(strings[4] + "$");
-        } else {
-            rule.p = Pattern.compile("^" + strings[4]);
-        }
-        pfxSfx.rules.add(rule);
-    }
-
-    static class PfxSfx {
-        boolean isSfx;
-        String name;
-        HashSet<Rule> rules;
-
-        static class Rule {
-            String f; // From
-            String t; // To
-            Pattern p; // Pattern
-
-            public boolean matches(String lemma) {
-                return p.matcher(lemma).matches();
-            }
-
-            @Override public boolean equals(Object o) {
-                if (this == o)
-                    return true;
-                if (o == null || getClass() != o.getClass())
-                    return false;
-                Rule rule = (Rule) o;
-                return Objects.equals(f, rule.f) && Objects.equals(t, rule.t) && Objects
-                        .equals(p, rule.p);
-            }
-
-            @Override public int hashCode() {
-                return Objects.hash(f, t, p);
-            }
-
-            @Override public String toString() {
-                return "{'f':'" + f + '\'' + ",'t':'" + t + "', 'p':'"  + p + "'}";
-            }
-        }
-
-        @Override public String toString() {
-            return "{'is_sfx':'" + isSfx + "', 'name':'" + name + "', 'rules':[" + rules + "]}";
-        }
     }
 }
