@@ -43,7 +43,7 @@ public abstract class AffLines {
         AffLine line = map.get(ruleName);
         if (line == null) {
             if (strings.length < 4) {
-                Log.println("Incorrect line: '" + s + "'");
+                Log.wrn("Incorrect aff line: '" + s + "'");
                 return;
             }
             line = new AffLine();
@@ -54,14 +54,14 @@ public abstract class AffLines {
             return;
         }
         if (strings.length < 5) {
-            Log.println("Incorrect line: '" + s + "'");
+            Log.wrn("Incorrect aff line: '" + s + "'");
             return;
         }
         AffLine.Rule rule = new AffLine.Rule();
         rule.f = "0".equals(strings[2]) ? "" : strings[2];
         rule.t = "0".equals(strings[3]) ? "" : strings[3];
         if (rule.f.equals(rule.t)) {
-            Log.println("Duplicate line: '" + s + "'");
+            Log.wrn("Duplicate aff line: '" + s + "'");
             return;
         }
         rule.p = makePattern(strings[4]);

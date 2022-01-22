@@ -1,5 +1,6 @@
 package andriell.dictionary.gui;
 
+import andriell.dictionary.service.Log;
 import andriell.dictionary.service.Parser;
 
 import javax.swing.*;
@@ -26,14 +27,45 @@ public class MainFrame {
 
     private JFileChooser dataFileChooser;
     private File fileDic;
+    Parser parser;
 
     public void init() {
         frame = new JFrame("Dictionary");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                Log.closeFileLog();
+            }
+        });
+
         ImageIcon icon = new ImageIcon(getClass().getResource("/img/dictionary.png"));
         frame.setIconImage(icon.getImage());
 
         frame.setContentPane(rootPane);
+
+        parser = new Parser();
+        //<editor-fold desc="progressBar">
+        parser.setProgressListener(new Parser.ProgressListener() {
+            @Override public void onStart(int max) {
+                progressBar.setMaximum(max);
+                openButton.setEnabled(false);
+                comboBox.setEnabled(false);
+                saveButton.setEnabled(false);
+            }
+
+            @Override public void onUpdate(int max, int position) {
+                progressBar.setValue(position);
+            }
+
+            @Override public void onComplete() {
+                progressBar.setMaximum(100);
+                progressBar.setValue(0);
+                openButton.setEnabled(true);
+                comboBox.setEnabled(true);
+                saveButton.setEnabled(true);
+            }
+        });
+        //</editor-fold>
 
         //<editor-fold desc="textArea">
         textPane.setBackground(frame.getBackground());
@@ -84,11 +116,10 @@ public class MainFrame {
         saveButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 try {
-                    Parser parser = new Parser();
                     parser.setFileDic(fileDic);
                     parser.parse();
                 } catch (Exception e1) {
-                    textPane.setText(e1.getMessage());
+                    Log.error(e1);
                 }
                 update();
             }

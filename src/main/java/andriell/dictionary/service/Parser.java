@@ -8,9 +8,10 @@ import java.io.*;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class Parser {
+public class Parser implements Runnable {
     File fileDic;
     File fileAff;
+
     String charset = "KOI8-R";
     boolean flagNum = false;
     int dicLine = 0;
@@ -18,6 +19,8 @@ public class Parser {
 
     AffLinesPfx pfx = new AffLinesPfx();
     AffLinesSfx sfx = new AffLinesSfx();
+
+    ProgressListener progressListener;
 
     public File getFileDic() {
         return fileDic;
@@ -29,6 +32,8 @@ public class Parser {
             int i = fileDic.getName().lastIndexOf('.');
             String name = fileDic.getName().substring(0, i);
             fileAff = new File(fileDic.getParent(), name + ".aff");
+            File fileLog = new File(fileDic.getParent(), name + ".log");
+            Log.setFileLog(fileLog);
         }
     }
 
@@ -37,18 +42,29 @@ public class Parser {
     }
 
     public void write(String lemma, Set<String> words) {
-        Log.println(lemma);
-        if (words != null)
-            Log.println(words.toString());
+        //Log.info(lemma);
+        //if (words != null)
+        //    Log.info(words.toString());
     }
 
     public void parse() throws IOException {
-        parseAff(0);
+        (new Thread(this)).start();
+    }
 
-        Log.println(sfx.toString());
-        Log.println(pfx.toString());
+    @Override public void run() {
+        try {
+            parseAff(0);
+        } catch (Exception e) {
+            Log.error(e);
+        }
 
-        parseDic();
+        // Log.info(sfx.toString());
+        // Log.info(pfx.toString());
+        try {
+            parseDic();
+        } catch (Exception e) {
+            Log.error(e);
+        }
     }
 
     private void parseDic() throws IOException {
@@ -64,6 +80,14 @@ public class Parser {
                 Log.error(e);
             }
         }
+
+        try {
+            if (progressListener != null)
+                progressListener.onStart(dicTotal);
+        } catch (Exception e) {
+            Log.error(e);
+        }
+
         while ((line = reader.readLine()) != null) {
             try {
                 dicLine++;
@@ -72,7 +96,7 @@ public class Parser {
                     continue;
                 int i = line.lastIndexOf('/');
                 if (i == 0)
-                    Log.println("Incorrect dic line: '" + line + "'");
+                    Log.wrn("Incorrect dic line: '" + line + "'");
                 if (i < 0) {
                     write(line, null);
                     continue;
@@ -87,7 +111,7 @@ public class Parser {
                 }
 
                 if (ruleNames == null) {
-                    Log.println("Incorrect dic rule names: '" + ruleName + "'");
+                    Log.wrn("Incorrect dic rule names: '" + ruleName + "'");
                     continue;
                 }
                 Set<String> wordsSfx = new TreeSet<>();
@@ -100,12 +124,26 @@ public class Parser {
                 }
                 wordsSfx.addAll(wordsPfx);
                 write(lemma, wordsSfx);
+                try {
+                    if (progressListener != null)
+                        progressListener.onUpdate(dicTotal, dicLine);
+                } catch (Exception e) {
+                    Log.error(e);
+                }
             } catch (Exception e) {
                 Log.error(e);
             }
-        } reader.close();
+        }
+        try {
+            if (progressListener != null)
+                progressListener.onComplete();
+        } catch (Exception e) {
+            Log.error(e);
+        }
+        reader.close();
         isr.close();
         fis.close();
+        Log.flushFileLog();
     }
 
     private void parseAff(int skip) throws IOException {
@@ -121,7 +159,7 @@ public class Parser {
             try {
                 if (line.startsWith("SET ")) {
                     charset = line.substring(4);
-                    Log.println("Set charset: '" + charset + "'");
+                    Log.info("Set charset: '" + charset + "'");
                     parseAff(i);
                     break;
                 } else if (line.startsWith("FLAG ")) {
@@ -135,7 +173,7 @@ public class Parser {
                 } else if (line.startsWith("PFX ")) {
                     pfx.addLine(line);
                 } else if (!"".equals(line)) {
-                    Log.println("Skip line: '" + line + "'");
+                    Log.info("Skip aff line: '" + line + "'");
                 }
 
             } catch (Exception e) {
@@ -145,5 +183,21 @@ public class Parser {
         reader.close();
         isr.close();
         fis.close();
+    }
+
+    public ProgressListener getProgressListener() {
+        return progressListener;
+    }
+
+    public void setProgressListener(ProgressListener progressListener) {
+        this.progressListener = progressListener;
+    }
+
+    public interface ProgressListener {
+        void onStart(int max);
+
+        void onUpdate(int max, int position);
+
+        void onComplete();
     }
 }
