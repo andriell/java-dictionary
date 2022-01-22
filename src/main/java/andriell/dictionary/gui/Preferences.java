@@ -2,6 +2,7 @@ package andriell.dictionary.gui;
 
 
 import andriell.dictionary.Main;
+import andriell.dictionary.service.Log;
 
 import java.io.*;
 
@@ -49,7 +50,7 @@ public class Preferences {
             os.writeObject(obj);
             return out.toByteArray();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.error(e);
         }
         return null;
     }
@@ -59,10 +60,8 @@ public class Preferences {
             ByteArrayInputStream in = new ByteArrayInputStream(data);
             ObjectInputStream is = new ObjectInputStream(in);
             return (Serializable) is.readObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            Log.error(e);
         }
         return null;
     }

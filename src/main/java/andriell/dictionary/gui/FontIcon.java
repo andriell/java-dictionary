@@ -1,6 +1,7 @@
 package andriell.dictionary.gui;
 
 import andriell.dictionary.Main;
+import andriell.dictionary.service.Log;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,7 +17,7 @@ public class FontIcon implements Icon {
         try {
             font = Font.createFont(Font.TRUETYPE_FONT, Main.class.getResourceAsStream("/font/awesome.ttf"));
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.error(e);
             return;
         }
 
