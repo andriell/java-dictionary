@@ -2,6 +2,7 @@ package andriell.dictionary.gui;
 
 import andriell.dictionary.service.Log;
 import andriell.dictionary.service.Parser;
+import andriell.dictionary.writer.Writers;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -108,7 +109,7 @@ public class MainFrame {
         //</editor-fold>
 
         //<editor-fold desc="comboBox">
-        DefaultComboBoxModel model = new DefaultComboBoxModel(new String[]{"Лемма слово.txt"});
+        DefaultComboBoxModel model = new DefaultComboBoxModel(Writers.getNames());
         comboBox.setModel(model);
         //</editor-fold>
 
@@ -116,6 +117,8 @@ public class MainFrame {
         saveButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 try {
+                    int i = comboBox.getSelectedIndex();
+                    parser.setWriter(Writers.getWriter(i));
                     parser.setFileDic(fileDic);
                     parser.parse();
                 } catch (Exception e1) {

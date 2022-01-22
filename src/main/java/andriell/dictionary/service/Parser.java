@@ -3,12 +3,14 @@ package andriell.dictionary.service;
 import andriell.dictionary.file.AffLinesPfx;
 import andriell.dictionary.file.AffLinesSfx;
 import andriell.dictionary.helpers.StringHelper;
+import andriell.dictionary.writer.Writer;
 
 import java.io.*;
 import java.util.Set;
 import java.util.TreeSet;
 
 public class Parser implements Runnable {
+    String baseFileName;
     File fileDic;
     File fileAff;
 
@@ -19,6 +21,7 @@ public class Parser implements Runnable {
 
     AffLinesPfx pfx = new AffLinesPfx();
     AffLinesSfx sfx = new AffLinesSfx();
+    Writer writer;
 
     ProgressListener progressListener;
 
@@ -29,22 +32,18 @@ public class Parser implements Runnable {
     public void setFileDic(File fileDic) {
         this.fileDic = fileDic;
         if (fileDic.isFile()) {
-            int i = fileDic.getName().lastIndexOf('.');
-            String name = fileDic.getName().substring(0, i);
-            fileAff = new File(fileDic.getParent(), name + ".aff");
-            File fileLog = new File(fileDic.getParent(), name + ".log");
+            baseFileName = fileDic.getAbsolutePath();
+            int i = baseFileName.lastIndexOf('.');
+            baseFileName = baseFileName.substring(0, i);
+            fileAff = new File(baseFileName + ".aff");
+            File fileLog = new File(baseFileName + ".log");
             Log.setFileLog(fileLog);
+            writer.setBaseFileName(baseFileName);
         }
     }
 
     public File getFileAff() {
         return fileAff;
-    }
-
-    public void write(String lemma, Set<String> words) {
-        //Log.info(lemma);
-        //if (words != null)
-        //    Log.info(words.toString());
     }
 
     public void parse() throws IOException {
@@ -98,7 +97,8 @@ public class Parser implements Runnable {
                 if (i == 0)
                     Log.wrn("Incorrect dic line: '" + line + "'");
                 if (i < 0) {
-                    write(line, null);
+                    if (writer != null)
+                        writer.write(line, null);
                     continue;
                 }
                 String lemma = line.substring(0, i);
@@ -123,7 +123,8 @@ public class Parser implements Runnable {
                     pfx.apply(wordsSfx, s, wordsPfx);
                 }
                 wordsSfx.addAll(wordsPfx);
-                write(lemma, wordsSfx);
+                if (writer != null)
+                    writer.write(lemma, wordsSfx);
                 try {
                     if (progressListener != null)
                         progressListener.onUpdate(dicTotal, dicLine);
@@ -144,6 +145,8 @@ public class Parser implements Runnable {
         isr.close();
         fis.close();
         Log.flushFileLog();
+        if (writer != null)
+            writer.close();
     }
 
     private void parseAff(int skip) throws IOException {
@@ -191,6 +194,14 @@ public class Parser implements Runnable {
 
     public void setProgressListener(ProgressListener progressListener) {
         this.progressListener = progressListener;
+    }
+
+    public Writer getWriter() {
+        return writer;
+    }
+
+    public void setWriter(Writer writer) {
+        this.writer = writer;
     }
 
     public interface ProgressListener {
