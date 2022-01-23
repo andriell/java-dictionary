@@ -10,13 +10,29 @@ import java.io.File;
 import java.io.Writer;
 import java.util.Set;
 
-public class SqlOneTableWriter implements DicWriter {
+public class SqlOneTableWriter implements DicWriter, HaveSql {
     private final MultiInsert multiInsert;
-    private Writer writerCreate;
+    private String tableSfx;
+    private boolean isInsertIgnore;
+    private String baseFileName;
 
     public SqlOneTableWriter() {
         multiInsert = new MultiInsert();
-        multiInsert.setBeginString("INSERT INTO dic_words (lemma, word) VALUES ");
+    }
+
+    @Override
+    public void setTableSfx(String sfx) {
+        tableSfx = sfx;
+    }
+
+    @Override
+    public void setInsertSize(int insertSize) {
+        multiInsert.setMaxSize(insertSize);
+    }
+
+    @Override
+    public void setInsertIgnore(boolean ignore) {
+        isInsertIgnore = ignore;
     }
 
     static class Entity implements MultiInsertEntity {
@@ -38,18 +54,17 @@ public class SqlOneTableWriter implements DicWriter {
     }
 
     @Override public void setBaseFileName(String baseFileName) {
-        try {
-            Writer writer = FileHelper.makeWriter(new File(baseFileName + "_one_table.sql"));
-            multiInsert.setWriter(writer);
-            writerCreate = FileHelper.makeWriter(new File(baseFileName + "_one_table_create.sql"));
-        } catch (Exception e) {
-            Log.error(e);
-        }
+        this.baseFileName = baseFileName;
     }
 
     @Override public void begin() {
         try {
-            writerCreate.write("CREATE TABLE `dic_words` (\n"
+            Writer writer = FileHelper.makeWriter(new File(baseFileName + "_one_table" + tableSfx + ".sql"));
+            multiInsert.setWriter(writer);
+            multiInsert.setBeginString("INSERT" + (isInsertIgnore ? " IGNORE " : " ") + "INTO dic_words" + tableSfx + " (lemma, word) VALUES ");
+
+            Writer writerCreate = FileHelper.makeWriter(new File(baseFileName + "_one_table" + tableSfx + "_create.sql"));
+            writerCreate.write("CREATE TABLE `dic_words" + tableSfx + "` (\n"
                     + "\t`id` INT(11) NOT NULL AUTO_INCREMENT,\n"
                     + "\t`lemma` VARCHAR(255) NULL DEFAULT NULL,\n"
                     + "\t`word` VARCHAR(255) NULL DEFAULT NULL,\n"

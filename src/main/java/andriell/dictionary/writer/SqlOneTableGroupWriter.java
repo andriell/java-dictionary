@@ -10,16 +10,16 @@ import java.io.File;
 import java.io.Writer;
 import java.util.Set;
 
-public class SqlOneTableGroupWriter implements DicWriter, HaveStartingIndex {
+public class SqlOneTableGroupWriter implements DicWriter, HaveStartingIndex, HaveSql {
     private final MultiInsert multiInsert;
-    private Writer writerCreate;
     private long startingIndex = 0;
     private long groupId = 0;
+    private String tableSfx;
+    private boolean isInsertIgnore;
+    private String baseFileName;
 
     public SqlOneTableGroupWriter() {
         multiInsert = new MultiInsert();
-        multiInsert
-                .setBeginString("INSERT INTO dic_words_group (group_id, is_lemma, word) VALUES ");
     }
 
     @Override
@@ -35,6 +35,21 @@ public class SqlOneTableGroupWriter implements DicWriter, HaveStartingIndex {
     @Override
     public long getLastIndex() {
         return groupId;
+    }
+
+    @Override
+    public void setTableSfx(String sfx) {
+        tableSfx = sfx;
+    }
+
+    @Override
+    public void setInsertSize(int insertSize) {
+        multiInsert.setMaxSize(insertSize);
+    }
+
+    @Override
+    public void setInsertIgnore(boolean ignore) {
+        isInsertIgnore = ignore;
     }
 
     static class Entity implements MultiInsertEntity {
@@ -60,7 +75,14 @@ public class SqlOneTableGroupWriter implements DicWriter, HaveStartingIndex {
     @Override public void begin() {
         groupId = startingIndex - 1;
         try {
-            writerCreate.write("CREATE TABLE `dic_words_group` (\n"
+            Writer writer = FileHelper.makeWriter(new File(baseFileName + "_one_table_group" + tableSfx + ".sql"));
+            multiInsert.setWriter(writer);
+            multiInsert
+                    .setBeginString("INSERT" + (isInsertIgnore ? " IGNORE " : " ") + "INTO dic_words_group" + tableSfx + " (group_id, is_lemma, word) VALUES ");
+
+            Writer writerCreate = FileHelper
+                    .makeWriter(new File(baseFileName + "_one_table_group" + tableSfx + "_create.sql"));
+            writerCreate.write("CREATE TABLE `dic_words_group" + tableSfx + "` (\n"
                     + "\t`id` INT(11) NOT NULL AUTO_INCREMENT,\n"
                     + "\t`group_id` INT(11) NOT NULL,\n"
                     + "\t`is_lemma` TINYINT(4) NOT NULL,\n"
@@ -95,14 +117,7 @@ public class SqlOneTableGroupWriter implements DicWriter, HaveStartingIndex {
     }
 
     @Override public void setBaseFileName(String baseFileName) {
-        try {
-            Writer writer = FileHelper.makeWriter(new File(baseFileName + "_one_table_group.sql"));
-            multiInsert.setWriter(writer);
-            writerCreate = FileHelper
-                    .makeWriter(new File(baseFileName + "_one_table_group_create.sql"));
-        } catch (Exception e) {
-            Log.error(e);
-        }
+        this.baseFileName = baseFileName;
     }
 
     @Override public void close() {

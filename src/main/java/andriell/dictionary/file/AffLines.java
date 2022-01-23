@@ -43,7 +43,7 @@ public abstract class AffLines {
         AffLine line = map.get(ruleName);
         if (line == null) {
             if (strings.length < 4) {
-                Log.wrn("Incorrect aff line: '" + s + "'");
+                Log.wrn("Incorrect first aff line: '" + s + "'");
                 return;
             }
             line = new AffLine();
@@ -67,6 +67,10 @@ public abstract class AffLines {
         rule.p = makePattern(strings[4]);
 
         line.rules.add(rule);
+    }
+
+    public void clear() {
+        map.clear();
     }
 
     @Override public String toString() {

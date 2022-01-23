@@ -2,10 +2,7 @@ package andriell.dictionary.gui;
 
 import andriell.dictionary.service.Log;
 import andriell.dictionary.service.Parser;
-import andriell.dictionary.writer.DicWriter;
-import andriell.dictionary.writer.HaveLemmeLemma;
-import andriell.dictionary.writer.HaveStartingIndex;
-import andriell.dictionary.writer.Writers;
+import andriell.dictionary.writer.*;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -26,6 +23,9 @@ public class MainFrame {
     private JCheckBox lemmaLemmaCheckBox;
     private JSpinner startingIndexSpinner;
     private JTextPane infoTextPane;
+    private JTextField sfxTextField;
+    private JCheckBox insertIgnoreCheckBox;
+    private JSpinner insertSizeSpinner;
 
     private JFrame frame;
 
@@ -65,6 +65,9 @@ public class MainFrame {
             @Override public void onStart(int max) {
                 progressBar.setMaximum(max);
                 lemmaLemmaCheckBox.setEnabled(false);
+                insertIgnoreCheckBox.setEnabled(false);
+                insertSizeSpinner.setEnabled(false);
+                sfxTextField.setEnabled(false);
                 startingIndexSpinner.setEnabled(false);
                 openButton.setEnabled(false);
                 comboBox.setEnabled(false);
@@ -141,6 +144,8 @@ public class MainFrame {
         //<editor-fold desc="spinnerStartingIndex">
         SpinnerModel sm = new SpinnerNumberModel(1, 0, Integer.MAX_VALUE, 1);
         startingIndexSpinner.setModel(sm);
+        SpinnerModel sm2 = new SpinnerNumberModel(1000, 1, Integer.MAX_VALUE, 1);
+        insertSizeSpinner.setModel(sm2);
         //</editor-fold>
 
         //<editor-fold desc="saveButton">
@@ -157,6 +162,14 @@ public class MainFrame {
                     if (dicWriter instanceof HaveLemmeLemma) {
                         ((HaveLemmeLemma) dicWriter).setLemmeLemma(lemmaLemmaCheckBox.isSelected());
                     }
+                    if (dicWriter instanceof HaveSql) {
+                        HaveSql haveSql = (HaveSql) dicWriter;
+                        haveSql.setInsertIgnore(insertIgnoreCheckBox.isSelected());
+                        String o = insertSizeSpinner.getValue().toString();
+                        int insertSize = Integer.parseInt(o);
+                        haveSql.setInsertSize(insertSize);
+                        haveSql.setTableSfx(sfxTextField.getText());
+                    }
                     parser.setDicWriter(dicWriter);
                     parser.setFileDic(fileDic);
                     parser.parse();
@@ -170,7 +183,7 @@ public class MainFrame {
 
         //<editor-fold desc="Preferences">
         Rectangle bounds = (Rectangle) Preferences
-                .getSerializable(Preferences.LAST_USED_BOUNDS, new Rectangle(0, 0, 550, 290));
+                .getSerializable(Preferences.LAST_USED_BOUNDS, new Rectangle(0, 0, 550, 370));
         frame.setBounds(bounds);
         frame.addComponentListener(new ComponentListener() {
             @Override public void componentResized(ComponentEvent e) {
@@ -206,6 +219,9 @@ public class MainFrame {
         int i = comboBox.getSelectedIndex();
         DicWriter dicWriter = Writers.getWriter(i);
         lemmaLemmaCheckBox.setEnabled(dicWriter instanceof HaveLemmeLemma);
+        insertIgnoreCheckBox.setEnabled(dicWriter instanceof HaveSql);
+        insertSizeSpinner.setEnabled(dicWriter instanceof HaveSql);
+        sfxTextField.setEnabled(dicWriter instanceof HaveSql);
         startingIndexSpinner.setEnabled(dicWriter instanceof HaveStartingIndex);
     }
 

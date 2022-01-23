@@ -2,7 +2,6 @@ package andriell.dictionary.service;
 
 import andriell.dictionary.file.AffLinesPfx;
 import andriell.dictionary.file.AffLinesSfx;
-import andriell.dictionary.gui.Alert;
 import andriell.dictionary.helpers.StringHelper;
 import andriell.dictionary.writer.DicWriter;
 import andriell.dictionary.writer.HaveStartingIndex;
@@ -95,24 +94,30 @@ public class Parser implements Runnable {
 
         long wordsCount = 0;
 
+        //<editor-fold desc="Order">
+        Set<String> lines = new TreeSet<>();
         while ((line = reader.readLine()) != null) {
+            lines.add(line.trim());
+        }
+        //</editor-fold>
+
+        for (String str: lines) {
             try {
                 dicLine++;
-                line = line.trim();
-                if ("".equals(line))
+                if ("".equals(str))
                     continue;
-                int i = line.lastIndexOf('/');
+                int i = str.lastIndexOf('/');
                 if (i == 0)
-                    Log.wrn("Incorrect dic line: '" + line + "'");
+                    Log.wrn("Incorrect dic line: '" + str + "'");
                 if (i < 0) {
                     if (dicWriter != null) {
-                        dicWriter.write(line, null);
+                        dicWriter.write(str, null);
                         wordsCount++;
                     }
                     continue;
                 }
-                String lemma = line.substring(0, i);
-                String ruleName = line.substring(i + 1);
+                String lemma = str.substring(0, i);
+                String ruleName = str.substring(i + 1);
                 String[] ruleNames;
                 if (flagNum) {
                     ruleNames = StringHelper.split(ruleName, ",");
@@ -173,6 +178,8 @@ public class Parser implements Runnable {
         BufferedReader reader = new BufferedReader(isr);
         String line;
         int i = 0;
+        pfx.clear();
+        sfx.clear();
         while ((line = reader.readLine()) != null) {
             i++;
             if (skip >= i)
