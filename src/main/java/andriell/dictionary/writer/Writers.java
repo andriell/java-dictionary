@@ -2,12 +2,12 @@ package andriell.dictionary.writer;
 
 public class Writers {
     private static DicWriter[] dicWriters = new DicWriter[] {
+            new SqlOneTableGroupWriter(),
+            new SqlTwoTableWriter(),
+            new SqlOneTableWriter(),
             new LnwnWriter(),
             new NlnwnWriter(),
             new LtwnWriter(),
-            new SqlOneTableWriter(),
-            new SqlTwoTableWriter(),
-            new SqlOneTableGroupWriter(),
     };
 
     public static String[] getNames() {

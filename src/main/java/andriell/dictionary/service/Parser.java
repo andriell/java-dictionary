@@ -2,8 +2,10 @@ package andriell.dictionary.service;
 
 import andriell.dictionary.file.AffLinesPfx;
 import andriell.dictionary.file.AffLinesSfx;
+import andriell.dictionary.gui.Alert;
 import andriell.dictionary.helpers.StringHelper;
 import andriell.dictionary.writer.DicWriter;
+import andriell.dictionary.writer.HaveStartingIndex;
 
 import java.io.*;
 import java.util.Set;
@@ -24,6 +26,7 @@ public class Parser implements Runnable {
     DicWriter dicWriter;
 
     ProgressListener progressListener;
+    CompleteListener completeListener;
 
     public File getFileDic() {
         return fileDic;
@@ -90,6 +93,8 @@ public class Parser implements Runnable {
         if (dicWriter != null)
             dicWriter.begin();
 
+        long wordsCount = 0;
+
         while ((line = reader.readLine()) != null) {
             try {
                 dicLine++;
@@ -100,8 +105,10 @@ public class Parser implements Runnable {
                 if (i == 0)
                     Log.wrn("Incorrect dic line: '" + line + "'");
                 if (i < 0) {
-                    if (dicWriter != null)
+                    if (dicWriter != null) {
                         dicWriter.write(line, null);
+                        wordsCount++;
+                    }
                     continue;
                 }
                 String lemma = line.substring(0, i);
@@ -126,8 +133,10 @@ public class Parser implements Runnable {
                     pfx.apply(wordsSfx, s, wordsPfx);
                 }
                 wordsSfx.addAll(wordsPfx);
-                if (dicWriter != null)
+                if (dicWriter != null) {
                     dicWriter.write(lemma, wordsSfx);
+                    wordsCount += wordsSfx.size();
+                }
                 try {
                     if (progressListener != null)
                         progressListener.onUpdate(dicTotal, dicLine);
@@ -147,9 +156,15 @@ public class Parser implements Runnable {
         reader.close();
         isr.close();
         fis.close();
-        Log.flushFileLog();
-        if (dicWriter != null)
+        Log.info("Words count: " + wordsCount);
+        if (dicWriter != null) {
             dicWriter.close();
+            if (completeListener != null) {
+                long lastIndex = (dicWriter instanceof HaveStartingIndex) ? ((HaveStartingIndex) dicWriter).getLastIndex() : -1;
+                completeListener.onComplete(wordsCount, lastIndex);
+            }
+        }
+        Log.flushFileLog();
     }
 
     private void parseAff(int skip) throws IOException {
@@ -199,6 +214,14 @@ public class Parser implements Runnable {
         this.progressListener = progressListener;
     }
 
+    public CompleteListener getCompleteListener() {
+        return completeListener;
+    }
+
+    public void setCompleteListener(CompleteListener completeListener) {
+        this.completeListener = completeListener;
+    }
+
     public DicWriter getDicWriter() {
         return dicWriter;
     }
@@ -213,5 +236,9 @@ public class Parser implements Runnable {
         void onUpdate(int max, int position);
 
         void onComplete();
+    }
+
+    public interface CompleteListener {
+        void onComplete(long totalWords, long lastIndex);
     }
 }

@@ -10,10 +10,11 @@ import java.io.File;
 import java.io.Writer;
 import java.util.Set;
 
-public class SqlOneTableGroupWriter implements DicWriter {
+public class SqlOneTableGroupWriter implements DicWriter, HaveStartingIndex {
     private final MultiInsert multiInsert;
     private Writer writerCreate;
-    private int groupId = 0;
+    private long startingIndex = 0;
+    private long groupId = 0;
 
     public SqlOneTableGroupWriter() {
         multiInsert = new MultiInsert();
@@ -21,12 +22,27 @@ public class SqlOneTableGroupWriter implements DicWriter {
                 .setBeginString("INSERT INTO dic_words_group (group_id, is_lemma, word) VALUES ");
     }
 
+    @Override
+    public long getStartingIndex() {
+        return startingIndex;
+    }
+
+    @Override
+    public void setStartingIndex(long index) {
+        startingIndex = index;
+    }
+
+    @Override
+    public long getLastIndex() {
+        return groupId;
+    }
+
     static class Entity implements MultiInsertEntity {
-        int groupId;
+        long groupId;
         int isLemma;
         String word;
 
-        public Entity(int groupId, int isLemma, String word) {
+        public Entity(long groupId, int isLemma, String word) {
             this.groupId = groupId;
             this.isLemma = isLemma;
             this.word = word;
@@ -42,7 +58,7 @@ public class SqlOneTableGroupWriter implements DicWriter {
     }
 
     @Override public void begin() {
-        groupId = 0;
+        groupId = startingIndex - 1;
         try {
             writerCreate.write("CREATE TABLE `dic_words_group` (\n"
                     + "\t`id` INT(11) NOT NULL AUTO_INCREMENT,\n"

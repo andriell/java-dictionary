@@ -7,16 +7,19 @@ import java.io.File;
 import java.io.Writer;
 import java.util.Set;
 
-public class LtwnWriter implements DicWriter {
+public class LtwnWriter implements DicWriter, HaveLemmeLemma {
     private Writer writer;
+    private boolean isLemmaLemma = false;
 
-    @Override public String getName() {
-        return "Lemma \\t word \\n .txt";
+    @Override
+    public String getName() {
+        return "Lemma \\t word \\n .csv";
     }
 
-    @Override public void setBaseFileName(String baseFileName) {
+    @Override
+    public void setBaseFileName(String baseFileName) {
         try {
-            writer = FileHelper.makeWriter(new File(baseFileName + "_ltwn.txt"));
+            writer = FileHelper.makeWriter(new File(baseFileName + "_ltwn.csv"));
         } catch (Exception e) {
             Log.error(e);
         }
@@ -30,10 +33,12 @@ public class LtwnWriter implements DicWriter {
         try {
             if (lemma == null)
                 return;
-            writer.write(lemma);
-            writer.write("\t");
-            writer.write(lemma);
-            writer.write("\n");
+            if (isLemmaLemma || words == null) {
+                writer.write(lemma);
+                writer.write("\t");
+                writer.write(lemma);
+                writer.write("\n");
+            }
             if (words == null) {
                 return;
             }
@@ -49,12 +54,18 @@ public class LtwnWriter implements DicWriter {
 
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         try {
             if (writer != null)
                 writer.close();
         } catch (Exception e) {
             Log.error(e);
         }
+    }
+
+    @Override
+    public void setLemmeLemma(boolean b) {
+        isLemmaLemma = b;
     }
 }

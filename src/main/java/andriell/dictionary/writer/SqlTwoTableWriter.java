@@ -10,11 +10,13 @@ import java.io.File;
 import java.io.Writer;
 import java.util.Set;
 
-public class SqlTwoTableWriter implements DicWriter {
+public class SqlTwoTableWriter implements DicWriter, HaveStartingIndex, HaveLemmeLemma {
     private final MultiInsert multiInsertLemma;
     private final MultiInsert multiInsertWord;
     private Writer writerCreate;
-    private int lemmaId = 0;
+    private boolean isLemmaLemma = false;
+    private long startingIndex = 0;
+    private long lemmaId = 0;
 
     public SqlTwoTableWriter() {
         multiInsertLemma = new MultiInsert();
@@ -24,11 +26,31 @@ public class SqlTwoTableWriter implements DicWriter {
         multiInsertWord.setBeginString("INSERT INTO dic_word (dic_lemma_id, word) VALUES ");
     }
 
+    @Override
+    public long getStartingIndex() {
+        return startingIndex;
+    }
+
+    @Override
+    public void setStartingIndex(long index) {
+        startingIndex = index;
+    }
+
+    @Override
+    public long getLastIndex() {
+        return lemmaId;
+    }
+
+    @Override
+    public void setLemmeLemma(boolean b) {
+        isLemmaLemma = b;
+    }
+
     static class EntityLemma implements MultiInsertEntity {
-        int id;
+        long id;
         String lemma;
 
-        public EntityLemma(int id, String lemma) {
+        public EntityLemma(long id, String lemma) {
             this.id = id;
             this.lemma = lemma;
         }
@@ -39,10 +61,10 @@ public class SqlTwoTableWriter implements DicWriter {
     }
 
     static class EntityWord implements MultiInsertEntity {
-        int dicLemmaId;
+        long dicLemmaId;
         String word;
 
-        public EntityWord(int dicLemmaId, String word) {
+        public EntityWord(long dicLemmaId, String word) {
             this.dicLemmaId = dicLemmaId;
             this.word = word;
         }
@@ -58,7 +80,7 @@ public class SqlTwoTableWriter implements DicWriter {
 
 
     @Override public void begin() {
-        lemmaId = 0;
+        lemmaId = startingIndex - 1;
         try {
             writerCreate.write("CREATE TABLE `dic_lemma` (\n"
                     + "\t`id` INT(11) NOT NULL,\n"
@@ -86,6 +108,9 @@ public class SqlTwoTableWriter implements DicWriter {
 
             lemmaId++;
             multiInsertLemma.addEntity(new EntityLemma(lemmaId, lemma));
+            if (isLemmaLemma || words == null) {
+                multiInsertWord.addEntity(new EntityWord(lemmaId, lemma));
+            }
             if (words == null) {
                 return;
             }

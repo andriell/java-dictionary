@@ -2,15 +2,15 @@ package andriell.dictionary.gui;
 
 import andriell.dictionary.service.Log;
 import andriell.dictionary.service.Parser;
+import andriell.dictionary.writer.DicWriter;
+import andriell.dictionary.writer.HaveLemmeLemma;
+import andriell.dictionary.writer.HaveStartingIndex;
 import andriell.dictionary.writer.Writers;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
+import java.awt.event.*;
 import java.io.File;
 
 /**
@@ -23,6 +23,9 @@ public class MainFrame {
     private JButton openButton;
     private JComboBox comboBox;
     private JButton saveButton;
+    private JCheckBox lemmaLemmaCheckBox;
+    private JSpinner startingIndexSpinner;
+    private JTextPane infoTextPane;
 
     private JFrame frame;
 
@@ -45,10 +48,24 @@ public class MainFrame {
         frame.setContentPane(rootPane);
 
         parser = new Parser();
+        parser.setCompleteListener(new Parser.CompleteListener() {
+            @Override
+            public void onComplete(long totalWords, long lastIndex) {
+                String info = "";
+                if (lastIndex > 0) {
+                    info = "Последний индекс: " + lastIndex + " Всего слов: " + totalWords;
+                } else {
+                    info = "Всего слов: " + totalWords;
+                }
+                infoTextPane.setText(info);
+            }
+        });
         //<editor-fold desc="progressBar">
         parser.setProgressListener(new Parser.ProgressListener() {
             @Override public void onStart(int max) {
                 progressBar.setMaximum(max);
+                lemmaLemmaCheckBox.setEnabled(false);
+                startingIndexSpinner.setEnabled(false);
                 openButton.setEnabled(false);
                 comboBox.setEnabled(false);
                 saveButton.setEnabled(false);
@@ -64,12 +81,14 @@ public class MainFrame {
                 openButton.setEnabled(true);
                 comboBox.setEnabled(true);
                 saveButton.setEnabled(true);
+                update();
             }
         });
         //</editor-fold>
 
         //<editor-fold desc="textArea">
         textPane.setBackground(frame.getBackground());
+        infoTextPane.setBackground(frame.getBackground());
         //</editor-fold>
 
         //<editor-fold desc="dataFileChooser">
@@ -111,6 +130,17 @@ public class MainFrame {
         //<editor-fold desc="comboBox">
         DefaultComboBoxModel model = new DefaultComboBoxModel(Writers.getNames());
         comboBox.setModel(model);
+        comboBox.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                update();
+            }
+        });
+        //</editor-fold>
+
+        //<editor-fold desc="spinnerStartingIndex">
+        SpinnerModel sm = new SpinnerNumberModel(1, 0, Integer.MAX_VALUE, 1);
+        startingIndexSpinner.setModel(sm);
         //</editor-fold>
 
         //<editor-fold desc="saveButton">
@@ -118,7 +148,16 @@ public class MainFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     int i = comboBox.getSelectedIndex();
-                    parser.setDicWriter(Writers.getWriter(i));
+                    DicWriter dicWriter = Writers.getWriter(i);
+                    if (dicWriter instanceof HaveStartingIndex) {
+                        String o = startingIndexSpinner.getValue().toString();
+                        int startIndex = Integer.parseInt(o);
+                        ((HaveStartingIndex) dicWriter).setStartingIndex(startIndex);
+                    }
+                    if (dicWriter instanceof HaveLemmeLemma) {
+                        ((HaveLemmeLemma) dicWriter).setLemmeLemma(lemmaLemmaCheckBox.isSelected());
+                    }
+                    parser.setDicWriter(dicWriter);
                     parser.setFileDic(fileDic);
                     parser.parse();
                 } catch (Exception e1) {
@@ -131,7 +170,7 @@ public class MainFrame {
 
         //<editor-fold desc="Preferences">
         Rectangle bounds = (Rectangle) Preferences
-                .getSerializable(Preferences.LAST_USED_BOUNDS, new Rectangle(0, 0, 550, 180));
+                .getSerializable(Preferences.LAST_USED_BOUNDS, new Rectangle(0, 0, 550, 290));
         frame.setBounds(bounds);
         frame.addComponentListener(new ComponentListener() {
             @Override public void componentResized(ComponentEvent e) {
@@ -163,6 +202,11 @@ public class MainFrame {
         } else {
             saveButton.setIcon(FontIcon.of(FontAwesome.SAVE, Color.LIGHT_GRAY));
         }
+
+        int i = comboBox.getSelectedIndex();
+        DicWriter dicWriter = Writers.getWriter(i);
+        lemmaLemmaCheckBox.setEnabled(dicWriter instanceof HaveLemmeLemma);
+        startingIndexSpinner.setEnabled(dicWriter instanceof HaveStartingIndex);
     }
 
     public static FileNameExtensionFilter buildFilter(String description, String[] extensions) {

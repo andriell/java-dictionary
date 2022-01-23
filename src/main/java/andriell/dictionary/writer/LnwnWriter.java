@@ -3,9 +3,7 @@ package andriell.dictionary.writer;
 import andriell.dictionary.helpers.FileHelper;
 import andriell.dictionary.service.Log;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.Writer;
 import java.util.Set;
 
