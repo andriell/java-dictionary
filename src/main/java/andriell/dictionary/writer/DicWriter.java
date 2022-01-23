@@ -2,12 +2,14 @@ package andriell.dictionary.writer;
 
 import java.util.Set;
 
-public interface Writer {
+public interface DicWriter {
     String getName();
 
-    void write(String lemma, Set<String> words);
-
     void setBaseFileName(String baseFileName);
+
+    void begin();
+
+    void write(String lemma, Set<String> words);
 
     void close();
 }

@@ -1,16 +1,15 @@
 package andriell.dictionary.service;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import andriell.dictionary.helpers.FileHelper;
+
+import java.io.*;
 
 public class Log {
-    private static BufferedWriter writer;
+    private static Writer writer;
 
     public static void setFileLog(File fileLog) {
         try {
-            writer = new BufferedWriter(new FileWriter(fileLog));
+            writer = FileHelper.makeWriter(fileLog);
         } catch (IOException e) {
             e.printStackTrace();
         }

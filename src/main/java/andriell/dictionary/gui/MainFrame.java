@@ -118,7 +118,7 @@ public class MainFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     int i = comboBox.getSelectedIndex();
-                    parser.setWriter(Writers.getWriter(i));
+                    parser.setDicWriter(Writers.getWriter(i));
                     parser.setFileDic(fileDic);
                     parser.parse();
                 } catch (Exception e1) {
