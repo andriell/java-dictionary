@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 public class Parser implements Runnable {
+    public static final String BOM = "О╩©";
     String baseFileName;
     File fileDic;
     File fileAff;
@@ -76,6 +77,8 @@ public class Parser implements Runnable {
         dicLine = 0;
         if ((line = reader.readLine()) != null) {
             try {
+                if (line.startsWith(BOM))
+                    line = line.substring(3);
                 dicTotal = Integer.parseInt(line);
             } catch (Exception e) {
                 Log.error(e);
@@ -181,6 +184,8 @@ public class Parser implements Runnable {
         pfx.clear();
         sfx.clear();
         while ((line = reader.readLine()) != null) {
+            if (i == 0 && line.startsWith(BOM))
+                line = line.substring(3);
             i++;
             if (skip >= i)
                 continue;
